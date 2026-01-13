@@ -390,6 +390,8 @@ bool ProviderInfo::CodecCapabilities(btav_a2dp_codec_index_t codec_index,
           codec_config->channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
           break;
         case ChannelMode::DUALMONO:
+          codec_config->channel_mode |= BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL;
+          break;
         case ChannelMode::UNKNOWN:
         default:
           break;

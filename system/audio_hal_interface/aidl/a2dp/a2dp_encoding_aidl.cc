@@ -672,6 +672,8 @@ static btav_a2dp_codec_channel_mode_t convert_channel_mode(ChannelMode channel_m
       return BTAV_A2DP_CODEC_CHANNEL_MODE_MONO;
     case ChannelMode::STEREO:
       return BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
+    case ChannelMode::DUALMONO:
+      return BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL;
     default:
       log::error("unknown channel mode");
       break;
@@ -786,6 +788,9 @@ provider::get_a2dp_configuration(
       break;
     case BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO:
       codecParameters.channelMode = ChannelMode::STEREO;
+      break;
+    case BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL:
+      codecParameters.channelMode = ChannelMode::DUALMONO;
       break;
     default:
       break;

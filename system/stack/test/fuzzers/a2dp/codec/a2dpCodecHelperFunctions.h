@@ -55,7 +55,7 @@ static const std::vector<btav_a2dp_codec_bits_per_sample_t> CODEC_BPS_ENUM_VALS 
 
 static const std::vector<btav_a2dp_codec_channel_mode_t> CODEC_CHANNELMODE_ENUM_VALS = {
         BTAV_A2DP_CODEC_CHANNEL_MODE_NONE, BTAV_A2DP_CODEC_CHANNEL_MODE_MONO,
-        BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO};
+        BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO, BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL};
 
 // Construct a btav_a2dp_codec_index_t object
 btav_a2dp_codec_index_t getArbitraryBtavCodecIndex(FuzzedDataProvider* fdp) {

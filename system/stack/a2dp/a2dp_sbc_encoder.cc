@@ -52,6 +52,14 @@
 
 #define A2DP_SBC_NON_EDR_MAX_RATE 229
 
+/*
+ * SBC Dual Channel (SBC HD) 3DH5 bitrates.
+ * 600 kbps @ 48 khz, 551.3 kbps @ 44.1 khz.
+ * Up to 5 frames for 3DH5.
+ */
+#define A2DP_SBC_3DH5_DEFAULT_BITRATE 552
+#define A2DP_SBC_3DH5_48KHZ_BITRATE 601
+
 #define A2DP_SBC_MAX_PCM_ITER_NUM_PER_TICK 3
 
 #define A2DP_SBC_MAX_HQ_FRAME_SIZE_44_1 119
@@ -119,7 +127,7 @@ static void a2dp_sbc_get_num_frame_iteration(uint8_t* num_of_iterations, uint8_t
                                              uint64_t timestamp_us);
 static uint16_t adjust_effective_mtu(const tA2DP_ENCODER_INIT_PEER_PARAMS& peer_params);
 static uint8_t calculate_max_frames_per_packet(void);
-static uint16_t a2dp_sbc_source_rate(bool is_peer_edr);
+static uint16_t a2dp_sbc_source_rate(bool is_peer_edr, bool is_support_3mbps, uint16_t tx_aa_mtu_size, uint16_t s16_sampling_freq);
 static uint32_t a2dp_sbc_frame_length(void);
 
 void a2dp_sbc_encoder_init(const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
@@ -212,9 +220,9 @@ static void a2dp_sbc_encoder_update(A2dpCodecConfig* a2dp_codec_config, bool* p_
 
   // Set the initial target bit rate
   const tA2DP_ENCODER_INIT_PEER_PARAMS& peer_params = a2dp_sbc_encoder_cb.peer_params;
-  p_encoder_params->u16BitRate = a2dp_sbc_source_rate(peer_params.is_peer_edr);
-
   a2dp_sbc_encoder_cb.TxAaMtuSize = adjust_effective_mtu(peer_params);
+  p_encoder_params->u16BitRate = a2dp_sbc_source_rate(peer_params.is_peer_edr, peer_params.peer_supports_3mbps, a2dp_sbc_encoder_cb.TxAaMtuSize, s16SamplingFreq);
+
   log::info("MTU={}, peer_mtu={} min_bitpool={} max_bitpool={}", a2dp_sbc_encoder_cb.TxAaMtuSize,
             peer_params.peer_mtu, min_bitpool, max_bitpool);
   log::info(
@@ -746,8 +754,15 @@ static uint8_t calculate_max_frames_per_packet(void) {
   return result;
 }
 
-static uint16_t a2dp_sbc_source_rate(bool is_peer_edr) {
+static uint16_t a2dp_sbc_source_rate(bool is_peer_edr, bool is_support_3mbps, uint16_t tx_aa_mtu_size, uint16_t s16_sampling_freq) {
   uint16_t rate = A2DP_SBC_DEFAULT_BITRATE;
+
+  if (is_support_3mbps && tx_aa_mtu_size >= MIN_3MBPS_AVDTP_SAFE_MTU) {
+    rate = A2DP_SBC_3DH5_DEFAULT_BITRATE;
+    if (s16_sampling_freq == 48000) {
+      rate = A2DP_SBC_3DH5_48KHZ_BITRATE;
+    }
+  }
 
   /* restrict bitrate if a2dp link is non-edr */
   if (!is_peer_edr) {

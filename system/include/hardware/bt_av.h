@@ -138,7 +138,8 @@ typedef enum {
 typedef enum {
   BTAV_A2DP_CODEC_CHANNEL_MODE_NONE = 0x0,
   BTAV_A2DP_CODEC_CHANNEL_MODE_MONO = 0x1 << 0,
-  BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO = 0x1 << 1
+  BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO = 0x1 << 1,
+  BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL = 0x1 << 2
 } btav_a2dp_codec_channel_mode_t;
 
 typedef enum {
@@ -225,6 +226,8 @@ struct btav_a2dp_codec_config_t {
     AppendCapability(channel_mode_str, (channel_mode & BTAV_A2DP_CODEC_CHANNEL_MODE_MONO), "MONO");
     AppendCapability(channel_mode_str, (channel_mode & BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO),
                      "STEREO");
+    AppendCapability(channel_mode_str, (channel_mode & BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL),
+                     "DUAL_CHANNEL");
 
     return "codec: " + CodecNameStr() + " priority: " + std::to_string(codec_priority) +
            " sample_rate: " + sample_rate_str + " bits_per_sample: " + bits_per_sample_str +

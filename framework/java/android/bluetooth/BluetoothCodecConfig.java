@@ -205,7 +205,7 @@ public final class BluetoothCodecConfig implements Parcelable {
     /** @hide */
     @IntDef(
             prefix = "CHANNEL_MODE_",
-            value = {CHANNEL_MODE_NONE, CHANNEL_MODE_MONO, CHANNEL_MODE_STEREO})
+            value = {CHANNEL_MODE_NONE, CHANNEL_MODE_MONO, CHANNEL_MODE_STEREO, CHANNEL_MODE_DUAL_CHANNEL})
     @Retention(RetentionPolicy.SOURCE)
     public @interface ChannelMode {}
 
@@ -217,6 +217,9 @@ public final class BluetoothCodecConfig implements Parcelable {
 
     /** Codec channel mode STEREO. */
     public static final int CHANNEL_MODE_STEREO = 0x1 << 1;
+
+    /** Codec channel mode DUAL CHANNEL. */
+    public static final int CHANNEL_MODE_DUAL_CHANNEL = 0x1 << 2;
 
     private final @Nullable BluetoothCodecType mCodecType;
     private @CodecPriority int mCodecPriority;
@@ -444,6 +447,9 @@ public final class BluetoothCodecConfig implements Parcelable {
         }
         if ((mChannelMode & CHANNEL_MODE_STEREO) != 0) {
             channelModeStr = appendCapabilityToString(channelModeStr, "STEREO");
+        }
+        if ((mChannelMode & CHANNEL_MODE_DUAL_CHANNEL) != 0) {
+            channelModeStr = appendCapabilityToString(channelModeStr, "DUAL_CHANNEL");
         }
 
         return ("{codecName:" + codecName)

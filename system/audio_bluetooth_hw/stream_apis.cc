@@ -453,7 +453,9 @@ static char* out_get_parameters(const struct audio_stream* stream, const char* k
     if (audio_cfg.channel_mask == AUDIO_CHANNEL_OUT_MONO) {
       param = "AUDIO_CHANNEL_OUT_MONO";
     }
-    if (audio_cfg.channel_mask == AUDIO_CHANNEL_OUT_STEREO) {
+    if (codec_capability.channel_mode &
+      (BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO |
+         BTAV_A2DP_CODEC_CHANNEL_MODE_DUAL_CHANNEL)) {
       param = "AUDIO_CHANNEL_OUT_STEREO";
     }
     return_params[AUDIO_PARAMETER_STREAM_SUP_CHANNELS] = param;
