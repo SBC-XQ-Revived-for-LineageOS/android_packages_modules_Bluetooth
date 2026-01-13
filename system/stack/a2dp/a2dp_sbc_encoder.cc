@@ -39,6 +39,7 @@
 #include "embdrv/sbc/encoder/include/sbc_encoder.h"
 #include "internal_include/bt_target.h"
 #include "osi/include/allocator.h"
+#include "osi/include/properties.h"
 #include "stack/include/bt_hdr.h"
 
 /* Buffer pool */
@@ -47,15 +48,38 @@
 // A2DP SBC encoder interval in milliseconds.
 #define A2DP_SBC_ENCODER_INTERVAL_MS 20
 
-/* High quality quality setting @ 44.1 khz */
-#define A2DP_SBC_DEFAULT_BITRATE 328
+/*
+ * Higher quality setting. 492 kbps @ 48 khz, 452 kbps @ 44.1 khz.
+ * Up to 4 frames for 2DH5, 6 frames for 3DH5.
+ */
+#define A2DP_SBC_DEFAULT_BITRATE 454
+#define A2DP_SBC_48KHZ_BITRATE 494
 
 #define A2DP_SBC_NON_EDR_MAX_RATE 229
 
+/*
+ * SBC Dual Channel (SBC HD) 3DH5 bitrates.
+ * 600 kbps @ 48 khz, 551.3 kbps @ 44.1 khz.
+ * Up to 5 frames for 3DH5.
+ */
+#define A2DP_SBC_3DH5_DEFAULT_BITRATE 552
+#define A2DP_SBC_3DH5_48KHZ_BITRATE 601
+
+/*
+ * SBC Dual Channel (SBC HD) 3DH5 higher bitrates.
+ * 990 kbps @ 48 khz, 909 kbps @ 44.1 khz.
+ * Up to 5 frames for 3DH5.
+ */
+#define A2DP_SBC_3DH5_ALTERNATE_DEFAULT_BITRATE 909
+#define A2DP_SBC_3DH5_ALTERNATE_48KHZ_BITRATE 990
+
+// SBC HD alternative bitrate property
+#define A2DP_SBC_HD_PROP "persist.bluetooth.sbc_hd_higher_bitrate"
+
 #define A2DP_SBC_MAX_PCM_ITER_NUM_PER_TICK 3
 
-#define A2DP_SBC_MAX_HQ_FRAME_SIZE_44_1 119
-#define A2DP_SBC_MAX_HQ_FRAME_SIZE_48 115
+#define A2DP_SBC_MAX_HQ_FRAME_SIZE_44_1 165
+#define A2DP_SBC_MAX_HQ_FRAME_SIZE_48 165
 
 /* Define the bitrate step when trying to match bitpool value */
 #define A2DP_SBC_BITRATE_STEP 5
@@ -119,7 +143,7 @@ static void a2dp_sbc_get_num_frame_iteration(uint8_t* num_of_iterations, uint8_t
                                              uint64_t timestamp_us);
 static uint16_t adjust_effective_mtu(const tA2DP_ENCODER_INIT_PEER_PARAMS& peer_params);
 static uint8_t calculate_max_frames_per_packet(void);
-static uint16_t a2dp_sbc_source_rate(bool is_peer_edr);
+static uint16_t a2dp_sbc_source_rate(bool is_peer_edr, bool is_support_3mbps, uint16_t tx_aa_mtu_size, uint16_t s16_sampling_freq);
 static uint32_t a2dp_sbc_frame_length(void);
 
 void a2dp_sbc_encoder_init(const tA2DP_ENCODER_INIT_PEER_PARAMS* p_peer_params,
@@ -212,9 +236,9 @@ static void a2dp_sbc_encoder_update(A2dpCodecConfig* a2dp_codec_config, bool* p_
 
   // Set the initial target bit rate
   const tA2DP_ENCODER_INIT_PEER_PARAMS& peer_params = a2dp_sbc_encoder_cb.peer_params;
-  p_encoder_params->u16BitRate = a2dp_sbc_source_rate(peer_params.is_peer_edr);
-
+  p_encoder_params->u16BitRate = a2dp_sbc_source_rate(peer_params.is_peer_edr, peer_params.peer_supports_3mbps, peer_params.peer_mtu, s16SamplingFreq);
   a2dp_sbc_encoder_cb.TxAaMtuSize = adjust_effective_mtu(peer_params);
+
   log::info("MTU={}, peer_mtu={} min_bitpool={} max_bitpool={}", a2dp_sbc_encoder_cb.TxAaMtuSize,
             peer_params.peer_mtu, min_bitpool, max_bitpool);
   log::info(
@@ -746,8 +770,33 @@ static uint8_t calculate_max_frames_per_packet(void) {
   return result;
 }
 
-static uint16_t a2dp_sbc_source_rate(bool is_peer_edr) {
+static uint16_t a2dp_sbc_source_rate(bool is_peer_edr, bool is_support_3mbps, uint16_t tx_aa_mtu_size, uint16_t s16_sampling_freq) {
   uint16_t rate = A2DP_SBC_DEFAULT_BITRATE;
+  log::verbose("[SBC-XQ] setting default rate: {}", rate);
+  if (s16_sampling_freq == 48000) {
+    log::verbose("[SBC-XQ] setting default rate for 48khz: {}", rate);
+    rate = A2DP_SBC_48KHZ_BITRATE;
+  }
+
+  if (is_support_3mbps && tx_aa_mtu_size >= MIN_3MBPS_AVDTP_SAFE_MTU) {
+    if (osi_property_get_int32(A2DP_SBC_HD_PROP, 0)) {
+      rate = A2DP_SBC_3DH5_ALTERNATE_DEFAULT_BITRATE;
+      log::verbose("[SBC-XQ] Source support higher birate & setprop. Setting rate as: {}", rate);
+
+      if (s16_sampling_freq == 48000) {
+        rate = A2DP_SBC_3DH5_ALTERNATE_48KHZ_BITRATE;
+        log::verbose("[SBC-XQ] Source running at 48khz & setprop. Setting rate as: {}", rate);
+      }
+    } else {
+      rate = A2DP_SBC_3DH5_DEFAULT_BITRATE;
+      log::verbose("[SBC-XQ] Source support higher birate. Setting rate as: {}", rate);
+
+      if (s16_sampling_freq == 48000) {
+        rate = A2DP_SBC_3DH5_48KHZ_BITRATE;
+        log::verbose("[SBC-XQ] Source running at 48khz. Setting rate as: {}", rate);
+      }
+    }
+  }
 
   /* restrict bitrate if a2dp link is non-edr */
   if (!is_peer_edr) {
